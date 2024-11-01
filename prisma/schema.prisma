@@ -1,0 +1,419 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+// user child model
+model Expertise {
+  id            String  @id @default(uuid())
+  imageUrl      String
+  name          String
+  pricePerHour  Float
+    createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model ExpertiseBooking {
+  id   String  @id @default(uuid())
+  bookedbyUserId String
+  bookedbyUserName String
+  
+  expertiseId String
+  expertiseName String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+
+model Blogs {
+  id   String  @id @default(uuid())
+
+  title String
+  description String
+  username String
+   // relation with user one to many 
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+// main model
+model User {
+  id    String @id @default(uuid())
+  email String    @unique
+  oauthId         String @unique
+  role            UserRole         @default(USER)
+  username       String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  // relation with company one to many  
+  companies      Companies[]
+  // Blogs
+  blogs          Blogs[]
+}
+
+// user child model 
+model Companies {
+  id        String   @id @default(uuid())
+  title     String 
+  image     String
+  description String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relation with user one to many 
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  // relation with buisnessplan one to one
+  buisnessPlan BuisnessPlan?
+  // relation with financial model
+  financialForecast FinancialForecast?
+  // relation with pitch deck 
+  pitchDeck PitchDeck?
+}
+
+ // -----------company child model starts -------------------------
+model BuisnessPlan {
+    id   String    @id @default(uuid())
+    createdAt          DateTime  @default(now())
+    updatedAt          DateTime  @updatedAt
+    // relation with company one to one
+    company            Companies @relation(fields: [companyId], references: [id], onDelete: Cascade)
+    companyId          String    @unique
+  
+    // relation with Executive Summary 
+    executiveSummary ExecutiveSummary?
+    // relation with  CompetitiveComparison
+    competitiveComparison CompetitiveComparison?
+    // relation with Strategy
+    strategy Strategy?
+    // relation with IndustryOverview
+    industryOverview IndustryOverview?
+    // relation with CompanyDescription
+    companyDescription CompanyDescription?
+    // relation with MarketingPlan
+    marketingPlan MarketingPlan?
+}
+
+model PitchDeck {
+    id   String    @id @default(uuid())
+    userId String
+    createdAt          DateTime  @default(now())
+    updatedAt          DateTime  @updatedAt
+
+    // relation with company one to one
+    company            Companies @relation(fields: [companyId], references: [id], onDelete: Cascade)
+    companyId          String    @unique
+  
+}
+
+model FinancialForecast {
+    id                  String                @id @default(uuid())
+    createdAt           DateTime              @default(now())
+    updatedAt           DateTime              @updatedAt
+    company             Companies             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+    companyId           String                @unique
+    useofFunds          UseofFunds?
+    projectedProfitLoss ProjectedProfitLoss[]
+    revenueForecast     RevenueForecast[]
+    bestCaseScenario    BestCaseScenario[]
+    worstCaseScenario   WorstCaseScenario[]
+    projectedCashFlow   ProjectedCashFlow[]
+    projectedBalanceSheet ProjectedBalanceSheet[]
+    revenueAssumption    RevenueAssumption[]
+     annualFinancials  AnnualFinancials[] // this will be done letter
+    expenseAssumption ExpenseAssumption?
+}
+
+model RevenueAssumption {
+    id                  String                @id @default(uuid())
+    name                String
+    pricePerUnit        Float
+
+    financialForecast   FinancialForecast     @relation(fields: [financialForecastId], references: [id], onDelete: Cascade)
+    financialForecastId String
+    revenueAssumptionItems RevenueLAssumptionItems[]
+}
+
+model RevenueLAssumptionItems {
+    id   String   @id @default(uuid())
+    unitName String 
+    FY1                 Float
+    FY2                 Float
+    FY3                 Float
+    FY4                 Float
+    FY5                 Float
+    revenueAssumption   RevenueAssumption     @relation(fields: [revenueAssumptionId], references: [id], onDelete: Cascade)
+    revenueAssumptionId String
+  
+} 
+
+
+
+model AnnualFinancials {
+  id                String             @id @default(uuid())
+  FY1               Float
+  FY2               Float
+  FY3               Float
+  FY4               Float
+  FY5               Float
+  type              FinancialType
+  financialForecast FinancialForecast  @relation(fields: [financialForecastId], references: [id], onDelete: Cascade)
+  financialForecastId String
+}
+
+enum FinancialType {
+  COGS
+  EBITDA
+  REVENUES
+}
+
+
+// here i will create expense assumption
+model ExpenseAssumption {
+  id                        String                @id @default(uuid())
+  initialCapital            String
+  initialCapitalAssumptions String
+  workingCapital            String
+  workingCapitalAssumptions String
+  capitalExpenditure        String
+  capitalExpenditureAssumptions String
+  operatingExpenses         OperatingExpense[]
+   financialForecast FinancialForecast  @relation(fields: [financialForecastId], references: [id],onDelete: Cascade)
+  financialForecastId String @unique
+}
+
+model OperatingExpense {
+  id            String   @id @default(uuid())
+  category      String
+  amount        String
+  currency      String
+  growthRate    String
+  growthRateUnit String
+  assumptions   String
+  expenseAssumptionId String
+  expenseAssumption   ExpenseAssumption @relation(fields: [expenseAssumptionId], references: [id], onDelete: Cascade)
+}
+
+
+
+// revenue assumption ends
+
+//  ----------------------buisness model all child ---------------------------------
+model ExecutiveSummary {
+  id                 String    @id @default(uuid())
+  ProblemStateMent   String
+  ProposedSolution   String
+  ValueProposition   String
+  ThreeYearsObective String
+  KeysToSuccess      String
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // relation with buisness plan 
+  buisnessPlan BuisnessPlan @relation(fields: [buisnessplanId], references: [id], onDelete: Cascade)
+  buisnessplanId String @unique
+}
+
+
+model CompetitiveComparison {
+  id                   String    @id @default(uuid())
+  competitors          String
+  competitiveAdvantage String
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  // relation with buisness plan 
+  buisnessPlan BuisnessPlan @relation(fields: [buisnessplanId], references: [id], onDelete: Cascade)
+  buisnessplanId String @unique
+}
+
+
+model Strategy {
+  id             String    @id @default(uuid())
+  managementTeam String
+  swotAnalysis   String
+  pestleAnalysis String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+ // relation with buisness plan 
+  buisnessPlan BuisnessPlan @relation(fields: [buisnessplanId], references: [id], onDelete: Cascade)
+  buisnessplanId String @unique
+}
+
+model IndustryOverview {
+  id                  String @id @default(uuid())
+  industryDescription String
+  marketNeeds         String
+  marketTrends        String
+  marketSegementation String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  // relation with buisness plan 
+  buisnessPlan BuisnessPlan @relation(fields: [buisnessplanId], references: [id], onDelete: Cascade)
+  buisnessplanId String @unique
+}
+
+model CompanyDescription {
+  id        String    @id @default(uuid())
+  overview  String
+  products  String
+  mission   String
+  vision    String
+  values    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // relation with buisness plan 
+  buisnessPlan BuisnessPlan @relation(fields: [buisnessplanId], references: [id], onDelete: Cascade)
+  buisnessplanId String @unique
+}
+
+model MarketingPlan {
+  id String @id @default(uuid())
+
+  localizedDigitalMarketingCampaigns     String
+  educationalWebinarsWorkshop            String
+  strategicPartnerShipBuisnessIncubators String
+  influencerMarketing                    String
+  contentMarketingSeo                    String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  // relation with buisness plan 
+  buisnessPlan BuisnessPlan @relation(fields: [buisnessplanId], references: [id], onDelete: Cascade)
+  buisnessplanId String @unique
+ 
+}
+// -----------------------------------------  buisness model all child ends ---------------------------------------------------------------
+
+// -------------- financial model child starts ------------------
+  model UseofFunds{
+        id String @id @default(uuid())
+        capitalExpenditures Float
+        cash Float
+        liabilitiesCapital Float
+        currentBorrowing Float
+        longTermLiabilities Float
+        accountsPayable Float
+        otherCurrentLiabilities Float
+        initialCapital Float
+        workingCapital Float
+        plannedInvestment Float
+        owner Float
+        investor Float
+        totalStartupExpenses Float
+        totalStartupAssets Float
+        totalLiabilites Float
+        totalPlannedInvestment Float
+        createdAt DateTime  @default(now())
+        updatedAt DateTime  @updatedAt
+
+        // relation with financial model
+        financialForecast FinancialForecast @relation(fields: [financialForecastId], references: [id], onDelete: Cascade)
+        financialForecastId String @unique
+  }
+
+  
+
+  model ProjectedProfitLoss {
+    id                String   @id @default(uuid())
+    name              String
+    FY1               Float
+    FY2               Float
+    FY3               Float
+    FY4               Float
+    FY5               Float
+    financialForecast FinancialForecast @relation(fields: [financialForecastId], references: [id], onDelete: Cascade)
+    financialForecastId String
+  }
+  
+  model RevenueForecast {
+       id                String   @id @default(uuid())
+    name              String
+    FY1               Float
+    FY2               Float
+    FY3               Float
+    FY4               Float
+    FY5               Float
+    financialForecast FinancialForecast @relation(fields: [financialForecastId], references: [id], onDelete: Cascade)
+    financialForecastId String
+  }
+
+  model BestCaseScenario {
+    id                String   @id @default(uuid())
+    name              String
+    FY1               Float
+    FY2               Float
+    FY3               Float
+    FY4               Float
+    FY5               Float
+    financialForecast FinancialForecast @relation(fields: [financialForecastId], references: [id], onDelete: Cascade)
+    financialForecastId String 
+  }
+
+  model WorstCaseScenario {
+    id                String   @id @default(uuid())
+    name              String
+    FY1               Float
+    FY2               Float
+    FY3               Float
+    FY4               Float
+    FY5               Float
+    financialForecast FinancialForecast @relation(fields: [financialForecastId], references: [id], onDelete: Cascade)
+    financialForecastId String 
+  }
+
+  model ProjectedCashFlow {
+    id                String   @id @default(uuid())
+    name              String
+    FY1               Float
+    FY2               Float
+    FY3               Float
+    FY4               Float
+    FY5               Float
+    financialForecast FinancialForecast @relation(fields: [financialForecastId], references: [id], onDelete: Cascade)
+    financialForecastId String 
+  }
+
+  model ProjectedBalanceSheet {
+    id                String   @id @default(uuid())
+    name              String
+    FY1               Float
+    FY2               Float
+    FY3               Float
+    FY4               Float
+    FY5               Float
+    financialForecast FinancialForecast @relation(fields: [financialForecastId], references: [id], onDelete: Cascade)
+    financialForecastId String 
+  }
+  
+// -------------- financial model child ends ------------------
+
+// enums
+enum UserRole {
+  ADMIN
+  SUPERADMIN
+  USER
+}
+
+
+
+
+
+
+
